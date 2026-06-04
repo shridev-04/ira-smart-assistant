@@ -11,7 +11,7 @@
 #  📌 PROJECT NAME:      I.R.A. Central Processing Server Core
 #  📌 CHIEF ARCHITECT:   Shridev Kumar
 #  📌 SYSTEM UTILITY:    FastAPI Engine Layer for Real-Time Neural Stream Processing
-#  📌 MODEL COGNITION:  Gemini-3.1-Flash-Live API Protocol Wrapper
+#  📌 MODEL COGNITION:   Gemini-3.1-Flash-Live API Protocol Wrapper
 # ==================================================================================
 #  © 2026 Shridev Kumar. Co-developed with AI. All Rights Reserved.
 #  This dynamic configuration matrix compiles prompts instantly based on user control logs.
@@ -29,15 +29,14 @@ from google.genai import types
 # ==================================================================================
 CONFIG = {
     # 1. Artificial Intelligence Access Credentials
-    # 🔒 गिटहब सुरक्षा सुधार: यहाँ असली की (Key) नहीं है। यह होस्टिंग सर्वर से ऑटोमैटिक उठाएगा।
     "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE"),      
     
     # 2. Identity Customization
-    "AI_NAME": "Ira",                                  # Smart Assistant Name
-    "CREATOR_TITLE": "Shridev Kumar",                  # Chief Architect Name
+    "AI_NAME": "Ira",                                  
+    "CREATOR_TITLE": "Shridev Kumar",                  
     
     # 3. Geo-Localization Anchor
-    "TARGET_CITY": "Patna, Bihar",                     # Weather/Local Information Context
+    "TARGET_CITY": "Patna, Bihar",                     
     
     # 4. Behavioral Attributes & Prompt Injection Nature
     "AI_BEHAVIOR_DESCRIPTION": (
@@ -48,23 +47,18 @@ CONFIG = {
     # -----------------------------------------------------------------------------
     # ⚙️ MULTI-APPLIANCE CONFIGURATION DIRECTORY (4-Channels Dynamic Variable Array)
     # -----------------------------------------------------------------------------
-    
-    # DEVICE CHANNEL 1 (Hardware GPIO 19 mapping)
     "DEV_1_NAME": "television",               
     "DEV_1_ON_CMD": "tv chalao",     
     "DEV_1_OFF_CMD": "tv band karo",   
 
-    # DEVICE CHANNEL 2 (Hardware GPIO 18 mapping)
     "DEV_2_NAME": "bedroom light",       
     "DEV_2_ON_CMD": "light on karo",   
     "DEV_2_OFF_CMD": "light band karo", 
 
-    # DEVICE CHANNEL 3 (Hardware GPIO 21 mapping)
     "DEV_3_NAME": "ceiling fan",        
     "DEV_3_ON_CMD": "pankha chalao",     
     "DEV_3_OFF_CMD": "pankha band karo",    
 
-    # DEVICE CHANNEL 4 (Hardware GPIO 23 mapping)
     "DEV_4_NAME": "air conditioner",   
     "DEV_4_ON_CMD": "ac on karo",      
     "DEV_4_OFF_CMD": "ac band karo",    
@@ -145,6 +139,9 @@ async def websocket_endpoint(websocket: WebSocket):
                         message = await websocket.receive()
                         if "bytes" in message:
                             await session.send(input=message["bytes"], end_of_turn=False)
+                        # ⭐ PING-PONG handler jo ESP32 connection ko zinda rakhega
+                        elif "text" in message and message["text"] == "PING":
+                            await websocket.send_text("PONG")
                     except WebSocketDisconnect:
                         break
                     except:
@@ -166,8 +163,6 @@ async def websocket_endpoint(websocket: WebSocket):
                                             
                                         if part.text:
                                             text_lower = part.text.lower()
-                                            
-                                            # Sequential array scan engine to identify and route matching state tokens
                                             for state in ['_ON', '_OFF']:
                                                 for i in range(1, 5):
                                                     token_key = f"T_{i}{state}"
@@ -182,7 +177,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 nonlocal clear_stream
                 while True:
                     try:
-                        audio_data = await audio_queue.get()
+                        # ⭐ FIXED: Timeout checking lagaya taaki khali baithe rehne par loop crash na ho
+                        try:
+                            audio_data = await asyncio.wait_for(audio_queue.get(), timeout=1.0)
+                        except asyncio.TimeoutError:
+                            continue 
+
                         chunk_size = 512
                         for i in range(0, len(audio_data), chunk_size):
                             if clear_stream:
@@ -195,7 +195,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                 break 
                         audio_queue.task_done()
                     except:
-                        break
+                        await asyncio.sleep(0.1)
 
             await asyncio.gather(
                 receive_from_esp32_and_send_to_gemini(),
@@ -205,3 +205,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         print("[ROUTER RECYCLE LOG] Process terminated. Socket cleaned.")
+        
