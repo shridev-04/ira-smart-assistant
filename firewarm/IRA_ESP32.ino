@@ -25,40 +25,39 @@
 #include <EEPROM.h>
 
 // ==================================================================================
-// ⭐⭐⭐ [MASTER CONTROL PANEL - USER INDEPENDENT CONFIGURATION] ⭐⭐⭐
+// ⭐⭐⭐ [MASTER CONTROL PANEL - GENERAL STATIC SETTINGS] ⭐⭐⭐
 // ==================================================================================
 namespace Config {
-    // 1. Network Settings (WiFi Credentials)
-    const char* wifi_ssid      = "YOUR_WIFI_SSID";         // Apne WiFi ka naam yahan dale
-    const char* wifi_password  = "YOUR_WIFI_PASSWORD";     // Apne WiFi ka password yahan dale
-    const char* server_host    = "YOUR_SERVER_IP_OR_HOST"; // Railway ya server ka hosted URL yahan dale
-    const uint16_t server_port = 8000;                     // FastAPI Port (Default 8000)
+    // 1. Network Connectivity Core (Users will enter their credentials here)
+    const char* wifi_ssid      = "YOUR_WIFI_SSID";         // <-- Personal data removed safely
+    const char* wifi_password  = "YOUR_WIFI_PASSWORD";     // <-- Personal data removed safely
 
-    // 2. Network Connectivity Indicator LED
-    const int status_led       = 2;                        // ESP32 On-board LED Pin
+    // 2. Telemetry and Routing Gateways (Users will put their hosted server URL here)
+    const char* server_host    = "your-app-name.onrender.com"; // <-- Placeholder for users
+    const uint16_t server_port = 443;                     // Always 443 for Cloud WSS
 
-    // 3. 4-Channel Hardware GPIO Pins Assignment
-    const int RELAY_1_PIN      = 19;                       // Pin assigned for Device 1
-    const int RELAY_2_PIN      = 18;                       // Pin assigned for Device 2
-    const int RELAY_3_PIN      = 21;                       // Pin assigned for Device 3
-    const int RELAY_4_PIN      = 23;                       // Pin assigned for Device 4
+    // 3. Status Visualizer Matrix Hooks
+    const int status_led       = 2;                        
 
-    // 4. IoT Handshake Tokens (Must perfectly align with Python Server configuration)
+    // 4. Hardware Appliance Relay Allocations
+    const int RELAY_1_PIN      = 19;                       
+    const int RELAY_2_PIN      = 18;                       
+    const int RELAY_3_PIN      = 21;                       
+    const int RELAY_4_PIN      = 23;                       
+
+    // 5. System Tokens (Synchronized flawlessly with Python CONFIG Object)
     const String R1_ON         = "R1_ON_SIGNAL";
     const String R1_OFF        = "R1_OFF_SIGNAL";
-    
     const String R2_ON         = "R2_ON_SIGNAL";
     const String R2_OFF        = "R2_OFF_SIGNAL";
-    
     const String R3_ON         = "R3_ON_SIGNAL";
-    const String R3_OFF         = "R3_OFF_SIGNAL";
-    
+    const String R3_OFF        = "R3_OFF_SIGNAL";
     const String R4_ON         = "R4_ON_SIGNAL";
-    const String R4_OFF         = "R4_OFF_SIGNAL";
+    const String R4_OFF        = "R4_OFF_SIGNAL";
 }
 
 // ==================================================================================
-// [HARDWARE ALLOCATION & SYSTEM MEMORY HOOKS - DO NOT ALTER INTERNAL ARCHITECTURE]
+// [MEMORY SECTOR ALLOCATION & CACHE DEF]
 // ==================================================================================
 #define EEPROM_SIZE 4 
 
@@ -67,6 +66,9 @@ namespace Config {
 #define ADDR_R3 2
 #define ADDR_R4 3
 
+// ==================================================================================
+// [I2S SIGNAL INTEGRITY AUDIO MATRIX CONSTANTS]
+// ==================================================================================
 #define I2S_SPEAKER_BCLK 26
 #define I2S_SPEAKER_LRC  25
 #define I2S_SPEAKER_DOUT 22
@@ -74,8 +76,10 @@ namespace Config {
 #define I2S_MIC_SD       32
 #define I2S_MIC_WS       15
 #define I2S_MIC_SCK      14
+
 #define BLOCK_SIZE       512           
 
+// Global Objects and Automation Volatiles
 WebSocketsClient webSocket;
 bool is_playing          = false; 
 bool ws_connected        = false;
@@ -83,7 +87,11 @@ unsigned long prevMillis = 0;
 const long blinkInterval = 300; 
 bool ledState            = LOW;
 
+// ==================================================================================
+// 🎧 [AUDIO SIGNAL EXTRACTION LAYER & REPRODUCTION DRIVERS]
+// ==================================================================================
 void setupI2S() {
+    // 1. Output Pipeline Setup (Speaker Driver)
     i2s_config_t tx_conf = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
         .sample_rate = 24000, 
@@ -104,6 +112,7 @@ void setupI2S() {
     i2s_driver_install(I2S_NUM_0, &tx_conf, 0, NULL);
     i2s_set_pin(I2S_NUM_0, &tx_pins);
 
+    // 2. Input Capture Pipeline Setup (Microphone Driver)
     i2s_config_t rx_conf = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate = 16000, 
@@ -125,77 +134,89 @@ void setupI2S() {
     i2s_set_pin(I2S_NUM_1, &rx_pins);
 }
 
+// ==================================================================================
+// 📡 [WEBSOCKET REAL-TIME TRAFFIC EVENTS HANDLER RECEPTOR]
+// ==================================================================================
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
     size_t bytes_written;
     switch(type) {
         case WStype_DISCONNECTED:
             ws_connected = false;
             is_playing = false;
+            Serial.println("[ROUTER INTERCEPT] Connection Terminated. Client Offline.");
             break;
+
         case WStype_CONNECTED:
             ws_connected = true;
-            Serial.println("[SYSTEM MASTER] WebSocket Connection Active under IRA Engine.");
+            Serial.println("[ROUTER INTERCEPT] Synchronization Active. Secure Stream Handshake Achieved.");
             break;
+
         case WStype_TEXT:
             {
                 String msg = String((char*)payload);
                 if (msg == "AUDIO_END") {
                     is_playing = false;
                     i2s_zero_dma_buffer(I2S_NUM_0);
+                    Serial.println("[CORE PROCESSOR] Response Broadcast Complete.");
                 }
                 
-                // --- Dynamic Signal Decoding Routing Engine ---
+                // Appliance State Engine Matrix Decoding
                 else if (msg == Config::R1_ON) {
                     digitalWrite(Config::RELAY_1_PIN, HIGH);
                     EEPROM.write(ADDR_R1, 1); EEPROM.commit();
-                    Serial.println("[RELAY 1] Status Forced HIGH");
+                    Serial.println("[AUTOMATION CORE] Executed: Channel 01 -> ON");
                 }
                 else if (msg == Config::R1_OFF) {
                     digitalWrite(Config::RELAY_1_PIN, LOW);
                     EEPROM.write(ADDR_R1, 0); EEPROM.commit();
-                    Serial.println("[RELAY 1] Status Forced LOW");
+                    Serial.println("[AUTOMATION CORE] Executed: Channel 01 -> OFF");
                 }
                 else if (msg == Config::R2_ON) {
                     digitalWrite(Config::RELAY_2_PIN, HIGH);
                     EEPROM.write(ADDR_R2, 1); EEPROM.commit();
-                    Serial.println("[RELAY 2] Status Forced HIGH");
+                    Serial.println("[AUTOMATION CORE] Executed: Channel 02 -> ON");
                 }
                 else if (msg == Config::R2_OFF) {
                     digitalWrite(Config::RELAY_2_PIN, LOW);
                     EEPROM.write(ADDR_R2, 0); EEPROM.commit();
-                    Serial.println("[RELAY 2] Status Forced LOW");
+                    Serial.println("[AUTOMATION CORE] Executed: Channel 02 -> OFF");
                 }
                 else if (msg == Config::R3_ON) {
                     digitalWrite(Config::RELAY_3_PIN, HIGH);
                     EEPROM.write(ADDR_R3, 1); EEPROM.commit();
-                    Serial.println("[RELAY 3] Status Forced HIGH");
+                    Serial.println("[AUTOMATION CORE] Executed: Channel 03 -> ON");
                 }
                 else if (msg == Config::R3_OFF) {
                     digitalWrite(Config::RELAY_3_PIN, LOW);
                     EEPROM.write(ADDR_R3, 0); EEPROM.commit();
-                    Serial.println("[RELAY 3] Status Forced LOW");
+                    Serial.println("[AUTOMATION CORE] Executed: Channel 03 -> OFF");
                 }
                 else if (msg == Config::R4_ON) {
                     digitalWrite(Config::RELAY_4_PIN, HIGH);
                     EEPROM.write(ADDR_R4, 1); EEPROM.commit();
-                    Serial.println("[RELAY 4] Status Forced HIGH");
+                    Serial.println("[AUTOMATION CORE] Executed: Channel 04 -> ON");
                 }
                 else if (msg == Config::R4_OFF) {
                     digitalWrite(Config::RELAY_4_PIN, LOW);
                     EEPROM.write(ADDR_R4, 0); EEPROM.commit();
-                    Serial.println("[RELAY 4] Status Forced LOW");
+                    Serial.println("[AUTOMATION CORE] Executed: Channel 04 -> OFF");
                 }
             }
             break;
+
         case WStype_BIN:
             is_playing = true;
             i2s_write(I2S_NUM_0, payload, length, &bytes_written, portMAX_DELAY);
             break;
+            
         default:
             break;
     }
 }
 
+// ==================================================================================
+// ⚡ [HARDWARE INIT ENGINE & CONTEXT LINK SETUP]
+// ==================================================================================
 void setup() {
     Serial.begin(115200);
     
@@ -207,7 +228,6 @@ void setup() {
 
     EEPROM.begin(EEPROM_SIZE);
     
-    // Auto Recovering Saved Boot States from Non-Volatile Flash Memory Space
     digitalWrite(Config::RELAY_1_PIN, EEPROM.read(ADDR_R1) == 1 ? HIGH : LOW);
     digitalWrite(Config::RELAY_2_PIN, EEPROM.read(ADDR_R2) == 1 ? HIGH : LOW);
     digitalWrite(Config::RELAY_3_PIN, EEPROM.read(ADDR_R3) == 1 ? HIGH : LOW);
@@ -223,8 +243,9 @@ void setup() {
     }
     Serial.println("\n[NETWORK ARCHITECTURE] Connection Anchored Successfully!");
 
-    // WebSocket link established dynamically under /ws/ira route
-    webSocket.begin(Config::server_host, Config::server_port, "/ws/ira");
+    // Secure SSL Connection Engine for Render Cloud Deployment
+    webSocket.setInsecure(); 
+    webSocket.beginSSL(Config::server_host, Config::server_port, "/ws/ira"); 
     webSocket.onEvent(webSocketEvent);
     webSocket.setReconnectInterval(3000);
 }
